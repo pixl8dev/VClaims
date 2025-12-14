@@ -1,15 +1,8 @@
-package com.buuz135.simpleclaims.commands;
+package com.buuz135.simpleclaims.commands.subcommand.party.op;
 
 import com.buuz135.simpleclaims.claim.ClaimManager;
-import com.buuz135.simpleclaims.commands.subcommand.party.CreatePartyCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.PartyAcceptCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.PartyInviteCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.PartyLeaveCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.op.OpCreatePartyCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.op.OpModifyChunkAmountCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.op.OpOverrideCommand;
-import com.buuz135.simpleclaims.commands.subcommand.party.op.OpPartyListCommand;
-import com.buuz135.simpleclaims.gui.PartyInfoEditGui;
+import com.buuz135.simpleclaims.commands.CommandMessages;
+import com.buuz135.simpleclaims.gui.PartyListGui;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.GameMode;
@@ -26,22 +19,11 @@ import java.util.concurrent.CompletableFuture;
 
 import static com.hypixel.hytale.server.core.command.commands.player.inventory.InventorySeeCommand.MESSAGE_COMMANDS_ERRORS_PLAYER_NOT_IN_WORLD;
 
-public class SimpleClaimsPartyCommand extends AsyncCommandBase {
+public class OpOverrideCommand extends AsyncCommandBase {
 
-    public SimpleClaimsPartyCommand() {
-        super("simpleclaimsparty", "Simple Claims Party Commands" );
-        this.addAliases("scp", "sc-party");
-        this.setPermissionGroup(GameMode.Adventure);
-
-        this.addSubCommand(new CreatePartyCommand());
-        this.addSubCommand(new PartyInviteCommand());
-        this.addSubCommand(new PartyAcceptCommand());
-        this.addSubCommand(new PartyLeaveCommand());
-        //OP Commands
-        this.addSubCommand(new OpCreatePartyCommand());
-        this.addSubCommand(new OpPartyListCommand());
-        this.addSubCommand(new OpModifyChunkAmountCommand());
-        this.addSubCommand(new OpOverrideCommand());
+    public OpOverrideCommand() {
+        super("admin-override", "Toggles ignoring all the chunk restrictions for all parties");
+        this.setPermissionGroup(GameMode.Creative);
     }
 
     @NonNullDecl
@@ -49,7 +31,6 @@ public class SimpleClaimsPartyCommand extends AsyncCommandBase {
     protected CompletableFuture<Void> executeAsync(CommandContext commandContext) {
         CommandSender sender = commandContext.sender();
         if (sender instanceof Player player) {
-            player.getWorldMapTracker().tick(0);
             Ref<EntityStore> ref = player.getReference();
             if (ref != null && ref.isValid()) {
                 Store<EntityStore> store = ref.getStore();
@@ -57,12 +38,14 @@ public class SimpleClaimsPartyCommand extends AsyncCommandBase {
                 return CompletableFuture.runAsync(() -> {
                     PlayerRef playerRefComponent = store.getComponent(ref, PlayerRef.getComponentType());
                     if (playerRefComponent != null) {
-                        var party = ClaimManager.getInstance().getPartyFromPlayer(player);
-                        if (party == null) {
-                            commandContext.sendMessage(CommandMessages.NOT_IN_A_PARTY);
-                            return;
+                        var overridesList = ClaimManager.getInstance().getAdminClaimOverrides();
+                        if (overridesList.contains(player.getUuid().toString())) {
+                            overridesList.remove(player.getUuid().toString());
+                            player.sendMessage(CommandMessages.DISABLED_OVERRIDE);
+                        } else {
+                            overridesList.add(player.getUuid().toString());
+                            player.sendMessage(CommandMessages.ENABLED_OVERRIDE);
                         }
-                        player.getPageManager().openCustomPage(ref, store, new PartyInfoEditGui(playerRefComponent, party, false));
                     }
                 }, world);
             } else {

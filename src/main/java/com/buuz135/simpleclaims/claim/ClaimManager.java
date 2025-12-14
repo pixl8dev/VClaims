@@ -19,6 +19,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
@@ -30,6 +31,7 @@ public class ClaimManager {
     private HashMap<String, HashMap<String, ChunkInfo>> chunks;
     private HashMap<String, UUID> adminUsageParty;
     private HashMap<String, PartyInvite> partyInvites;
+    private List<String> adminClaimOverrides;
     private boolean needsMapUpdate;
     private boolean isDirty;
     private Thread savingThread;
@@ -48,6 +50,7 @@ public class ClaimManager {
         this.isDirty = false;
         this.playerNameTracker = new PlayerNameTracker();
         this.partyInvites = new HashMap<>();
+        this.adminClaimOverrides = new ArrayList<>();
 
         FileUtils.ensureMainDirectory();
 
@@ -146,6 +149,8 @@ public class ClaimManager {
     }
 
     public boolean isAllowedToInteract(Player player, String dimension, int chunkX, int chunkZ, Predicate<PartyInfo> interactMethod){
+        // Admin Overrides ignores all the checks
+        if (adminClaimOverrides.contains(player.getUuid().toString())) return true;
         // Check if the chunk is claimed and yf the chunk is not claimed return true
         var chunkInfo = getChunkRawCoords(dimension, chunkX, chunkZ);
         if (chunkInfo == null) return true;
@@ -303,5 +308,9 @@ public class ClaimManager {
         this.chunks.forEach((dimension, chunkInfos) -> chunkInfos.values().removeIf(chunkInfo -> chunkInfo.getPartyOwner().equals(partyInfo.getId())));
         this.parties.remove(partyInfo.getId().toString());
         markDirty();
+    }
+
+    public List<String> getAdminClaimOverrides() {
+        return adminClaimOverrides;
     }
 }

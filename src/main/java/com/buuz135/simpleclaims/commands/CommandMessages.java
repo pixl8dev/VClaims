@@ -37,4 +37,7 @@ public class CommandMessages {
     public static final Message PARTY_OWNER_TRANSFERRED = Message.translation("commands.simpleclaims.partyOwnerTransferred");
 
     public static final Message MODIFIED_MAX_CHUNK_AMOUNT = Message.translation("commands.simpleclaims.modifiedMaxChunkAmount");
+
+    public static final Message ENABLED_OVERRIDE = Message.translation("commands.simpleclaims.enabledOverride");
+    public static final Message DISABLED_OVERRIDE = Message.translation("commands.simpleclaims.disabledOverride");
 }
