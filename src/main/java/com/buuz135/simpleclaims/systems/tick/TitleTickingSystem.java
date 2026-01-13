@@ -40,7 +40,7 @@ public class TitleTickingSystem extends EntityTickingSystem<EntityStore> {
         var current = this.titles.getOrDefault(playerRef.getUuid().toString(), Message.raw(""));
         if (!current.getRawText().equals(chunk.getRawText())) {
             this.titles.put(playerRef.getUuid().toString(), chunk);
-            EventTitleUtil.showEventTitleToPlayer(playerRef, chunk, Message.raw("Simple Claims"), false, null, 2, 0.5f, 0.5f);
+            EventTitleUtil.showEventTitleToPlayer(playerRef, chunk, Message.raw("Claims"), false, null, 2, 0.5f, 0.5f);
         }
 
     }

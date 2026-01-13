@@ -29,8 +29,8 @@ import static com.hypixel.hytale.server.core.command.commands.player.inventory.I
 public class SimpleClaimsPartyCommand extends AbstractAsyncCommand {
 
     public SimpleClaimsPartyCommand() {
-        super("simpleclaimsparty", "Simple Claims Party Commands" );
-        this.addAliases("scp", "sc-party");
+        super("claimparty", "Claims Party Commands" );
+        this.addAliases("cparty");
         this.setPermissionGroup(GameMode.Adventure);
 
         this.addSubCommand(new CreatePartyCommand());
