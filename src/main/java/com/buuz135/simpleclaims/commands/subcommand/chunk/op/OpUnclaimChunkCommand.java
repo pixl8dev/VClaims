@@ -34,18 +34,29 @@ public class OpUnclaimChunkCommand extends AbstractAsyncCommand {
             if (ref != null && ref.isValid()) {
                 Store<EntityStore> store = ref.getStore();
                 World world = store.getExternalData().getWorld();
-                return CompletableFuture.runAsync(() -> {
-                    PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                    if (playerRef != null) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                world.execute(() -> {
+                    try {
+                        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                        if (playerRef == null) {
+                            commandContext.sendMessage(MESSAGE_COMMANDS_ERRORS_PLAYER_NOT_IN_WORLD);
+                            future.complete(null);
+                            return;
+                        }
                         var chunk = ClaimManager.getInstance().getChunkRawCoords(player.getWorld().getName(), (int) playerRef.getTransform().getPosition().getX(), (int) playerRef.getTransform().getPosition().getZ());
                         if (chunk == null) {
                             player.sendMessage(CommandMessages.NOT_CLAIMED);
+                            future.complete(null);
                             return;
                         }
                         ClaimManager.getInstance().unclaimRawCoords(player.getWorld().getName(), (int) playerRef.getTransform().getPosition().getX(), (int) playerRef.getTransform().getPosition().getZ());
                         player.sendMessage(CommandMessages.UNCLAIMED);
+                        future.complete(null);
+                    } catch (Throwable t) {
+                        future.completeExceptionally(t);
                     }
-                }, world);
+                });
+                return future;
             } else {
                 commandContext.sendMessage(MESSAGE_COMMANDS_ERRORS_PLAYER_NOT_IN_WORLD);
                 return CompletableFuture.completedFuture(null);

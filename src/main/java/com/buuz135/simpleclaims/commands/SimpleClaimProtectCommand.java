@@ -27,8 +27,8 @@ import static com.hypixel.hytale.server.core.command.commands.player.inventory.I
 public class SimpleClaimProtectCommand extends AbstractAsyncCommand {
 
     public SimpleClaimProtectCommand() {
-        super("simpleclaims", "Opens the chunk claim gui");
-        this.addAliases("sc", "sc-chunks", "scc");
+        super("claims", "Opens the chunk claim gui");
+        this.addAliases("claim");
         this.setPermissionGroup(GameMode.Adventure);
 
         this.addSubCommand(new ClaimChunkCommand());
@@ -44,23 +44,36 @@ public class SimpleClaimProtectCommand extends AbstractAsyncCommand {
         CommandSender sender = commandContext.sender();
         if (sender instanceof Player player) {
             Ref<EntityStore> ref = player.getReference();
-            PlayerRef playerRef = ref.getStore().getComponent(ref, PlayerRef.getComponentType());
-            if (ref != null && ref.isValid() && playerRef != null) {
+            if (ref != null && ref.isValid()) {
                 Store<EntityStore> store = ref.getStore();
                 World world = store.getExternalData().getWorld();
-                return CompletableFuture.runAsync(() -> {
-                    if (!ClaimManager.getInstance().canClaimInDimension(world)) {
-                        player.sendMessage(CommandMessages.CANT_CLAIM_IN_THIS_DIMENSION);
-                        return;
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                world.execute(() -> {
+                    try {
+                        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                        if (playerRef == null) {
+                            commandContext.sendMessage(MESSAGE_COMMANDS_ERRORS_PLAYER_NOT_IN_WORLD);
+                            future.complete(null);
+                            return;
+                        }
+                        if (!ClaimManager.getInstance().canClaimInDimension(world)) {
+                            player.sendMessage(CommandMessages.CANT_CLAIM_IN_THIS_DIMENSION);
+                            future.complete(null);
+                            return;
+                        }
+                        var party = ClaimManager.getInstance().getPartyFromPlayer(playerRef.getUuid());
+                        if (party == null) {
+                            party = ClaimManager.getInstance().createParty(player, playerRef);
+                            player.sendMessage(CommandMessages.PARTY_CREATED);
+                        }
+                        var position = store.getComponent(ref, TransformComponent.getComponentType());
+                        player.getPageManager().openCustomPage(ref, store, new ChunkInfoGui(playerRef, player.getWorld().getName(), ChunkUtil.chunkCoordinate(position.getPosition().getX()), ChunkUtil.chunkCoordinate(position.getPosition().getZ())));
+                        future.complete(null);
+                    } catch (Throwable t) {
+                        future.completeExceptionally(t);
                     }
-                    var party = ClaimManager.getInstance().getPartyFromPlayer(playerRef.getUuid());
-                    if (party == null) {
-                        party = ClaimManager.getInstance().createParty(player, playerRef);
-                        player.sendMessage(CommandMessages.PARTY_CREATED);
-                    }
-                    var position = store.getComponent(ref, TransformComponent.getComponentType());
-                    player.getPageManager().openCustomPage(ref, store, new ChunkInfoGui(playerRef, player.getWorld().getName(), ChunkUtil.chunkCoordinate(position.getPosition().getX()), ChunkUtil.chunkCoordinate(position.getPosition().getZ())));
-                }, world);
+                });
+                return future;
             } else {
                 commandContext.sendMessage(MESSAGE_COMMANDS_ERRORS_PLAYER_NOT_IN_WORLD);
                 return CompletableFuture.completedFuture(null);
